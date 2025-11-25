@@ -92,6 +92,10 @@ def search_items():
     entry.delete(0, tk.END)
 
 
+def secret():
+    app.destroy
+
+
 app = tk.Tk()
 app.title("Inventory Bag 🎒")
 app.geometry("420x380")
@@ -112,6 +116,8 @@ tk.Button(button_frame, text="Remove", width=10,
           command=remove_items).grid(row=0, column=1, padx=5)
 tk.Button(button_frame, text="Search", width=10,
           command=search_items).grid(row=0, column=2, padx=5)
+tk.Button(button_frame, text="Secret", width=10,
+          command=secret).grid(row=0, column=3, padx=5)
 
 display_box = tk.Listbox(app, width=40, height=12)
 display_box.pack(pady=15)
