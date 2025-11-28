@@ -5,6 +5,8 @@ inventory = []
 reg_user = ""
 reg_pass = ""
 
+global entry
+
 
 def parse_item_input(raw_text):
     raw_text = raw_text.strip().lower()
