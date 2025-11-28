@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import messagebox
 
 inventory = []
+reg_user = ""
+reg_pass = ""
 
 
 def parse_item_input(raw_text):
@@ -30,6 +32,7 @@ def add_item_from_text(raw_text):
 
 
 def update_display():
+    global display_box
     display_box.delete(0, tk.END)
     if inventory:
         for item in sorted(set(inventory)):
@@ -39,6 +42,7 @@ def update_display():
 
 
 def add_items():
+
     raw = entry.get()
     if raw.strip():
         items = [i.strip() for i in raw.split(",") if i.strip()]
@@ -92,8 +96,40 @@ def search_items():
     entry.delete(0, tk.END)
 
 
+def clear_screen():
+    for widget in app.winfo_children():
+        widget.destroy()
+
+
+def saved_register():
+    reg_user = saved_reg_name
+    reg_pass = saved_reg_pass
+    clear_screen()
+    inventory_gui()
+
+
 def secret():
-    app.destroy
+    clear_screen()
+    user_name = tk.Label(app, text="Type in the user")
+    user_name.pack()
+
+    user = tk.Entry(app, width=20)
+    user.pack(pady=5)
+
+    password_text = tk.Label(app, text="Type in the password")
+    password_text.pack(pady=5)
+
+    password = tk.Entry(app, width=20)
+    password.pack(pady=5)
+
+    login = tk.Button(app, text="Login", command=cookie_clicker)
+    login.pack(pady=5)
+
+
+def cookie_clicker():
+    global user, password
+    if user == reg_user and password == reg_pass:
+        clear_screen()
 
 
 app = tk.Tk()
@@ -101,27 +137,48 @@ app.title("Inventory Bag 🎒")
 app.geometry("420x380")
 app.resizable(False, False)
 
-title = tk.Label(app, text="Inventory Manager GUI", font=("Arial", 14, "bold"))
-title.pack(pady=10)
+reg_name = tk.Label(app, text="Make a username")
+reg_name.pack()
 
-entry = tk.Entry(app, width=40)
-entry.pack(pady=5)
+saved_reg_name = tk.Entry(app, width=20)
+saved_reg_name.pack(pady=5)
 
-button_frame = tk.Frame(app)
-button_frame.pack(pady=5)
+reg_password = tk.Label(app, text="Make a Password")
+reg_password.pack(pady=5)
 
-tk.Button(button_frame, text="Add", width=10,
-          command=add_items).grid(row=0, column=0, padx=5)
-tk.Button(button_frame, text="Remove", width=10,
-          command=remove_items).grid(row=0, column=1, padx=5)
-tk.Button(button_frame, text="Search", width=10,
-          command=search_items).grid(row=0, column=2, padx=5)
-tk.Button(button_frame, text="Secret", width=10,
-          command=secret).grid(row=0, column=3, padx=5)
+saved_reg_pass = tk.Entry(app, width=20)
+saved_reg_pass.pack(pady=5)
 
-display_box = tk.Listbox(app, width=40, height=12)
-display_box.pack(pady=15)
+register = tk.Button(app, text="Register", command=saved_register)
+register.pack(pady=5)
 
-update_display()
+
+def inventory_gui():
+    global entry
+    global display_box
+    title = tk.Label(app, text="Inventory Manager GUI",
+                     font=("Arial", 14, "bold"))
+    title.pack(pady=10)
+
+    entry = tk.Entry(app, width=40)
+    entry.pack(pady=5)
+
+    button_frame = tk.Frame(app)
+    button_frame.pack(pady=5)
+
+    tk.Button(button_frame, text="Add", width=10,
+              command=add_items).grid(row=0, column=0, padx=5)
+    tk.Button(button_frame, text="Remove", width=10,
+              command=remove_items).grid(row=0, column=1, padx=5)
+    tk.Button(button_frame, text="Search", width=10,
+              command=search_items).grid(row=0, column=2, padx=5)
+    tk.Button(button_frame, text="Secret", width=10,
+              command=secret).grid(row=0, column=3, padx=5)
+
+    display_box = tk.Listbox(app, width=40, height=12)
+    display_box.pack(pady=15)
+
+    update_display()
+
 
 app.mainloop()
