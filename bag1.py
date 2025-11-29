@@ -5,6 +5,16 @@ inventory = []
 reg_user = ""
 reg_pass = ""
 
+cookies = 0.0
+cps = 0
+upgrade_cost = 20
+cookie_clicks = 1.0
+click_upgrade = 100
+
+auto_id = None
+
+secret_button = None
+
 global entry
 
 
@@ -34,13 +44,23 @@ def add_item_from_text(raw_text):
 
 
 def update_display():
-    global display_box
+    global display_box, secret_button
     display_box.delete(0, tk.END)
     if inventory:
         for item in sorted(set(inventory)):
             display_box.insert(tk.END, f"{inventory.count(item)}x {item}")
     else:
         display_box.insert(tk.END, "Your bag is empty!")
+
+    if any(item.lower() == "cookie" for item in inventory):
+        if not secret_button:
+            secret_button = tk.Button(
+                button_frame, text="Secret", width=10, command=secret)
+            secret_button.grid(row=0, column=3, padx=5)
+    else:
+        if secret_button:
+            secret_button.destroy()
+            secret_button = None
 
 
 def add_items():
@@ -103,14 +123,25 @@ def clear_screen():
         widget.destroy()
 
 
+def back_to_inventory():
+    global auto_id
+    if auto_id:
+        app.after_cancel(auto_id)
+        auto_id = None
+    clear_screen()
+    inventory_gui()
+
+
 def saved_register():
-    reg_user = saved_reg_name
-    reg_pass = saved_reg_pass
+    global reg_user, reg_pass
+    reg_user = saved_reg_name.get()
+    reg_pass = saved_reg_pass.get()
     clear_screen()
     inventory_gui()
 
 
 def secret():
+    global user, password
     clear_screen()
     user_name = tk.Label(app, text="Type in the user")
     user_name.pack()
@@ -127,11 +158,90 @@ def secret():
     login = tk.Button(app, text="Login", command=cookie_clicker)
     login.pack(pady=5)
 
+    back_button = tk.Button(app, text="⬅ Back", command=back_to_inventory)
+    back_button.pack(pady=10)
+
+
+def update_label():
+    cookie_label.config(text=f"Cookies: {round(cookies, 2)}")
+    cps_label.config(text=f"CPS: {cps}")
+    cost_label.config(text=f"Upgrade Cost: {upgrade_cost}")
+    click_cost_label.config(text=f"Uppgrade Cost: {click_upgrade}")
+
+
+def buy_upgrade():
+    global cookies, cps, upgrade_cost
+
+    if cookies >= upgrade_cost:
+        cookies -= upgrade_cost
+        cps += 1
+        upgrade_cost = int(upgrade_cost * 1.5)
+        update_label()
+
+
+def buy_click_upgrade():
+    global cookies, cookie_clicks, click_upgrade
+    if cookies >= click_upgrade:
+        cookies -= click_upgrade
+        cookie_clicks = round(cookie_clicks * 1.5, 2)
+        click_upgrade = int(click_upgrade * 1.5)
+        update_label()
+
+
+def auto_generate():
+    global cookies, auto_id
+    cookies += cps
+    update_label()
+    auto_id = app.after(1000, auto_generate)
+
+
+def cookie_click():
+    global cookies
+    cookies += cookie_clicks
+    update_label()
+
 
 def cookie_clicker():
-    global user, password
-    if user == reg_user and password == reg_pass:
+    global user, password, cookie_label, cps_label, click_cost_label, cost_label
+    if user.get() == reg_user and password.get() == reg_pass:
         clear_screen()
+        label = tk.Label(app, text="Cookie Cliker!", font=("Arial", 18))
+        label.pack()
+
+        cookie_label = tk.Label(app, text="Cookies: 0", font=("Arial", 14))
+        cookie_label.pack(pady=5)
+
+        cps_label = tk.Label(app, text="CPS: 0", font=("Arial", 14))
+        cps_label.pack(pady=5)
+
+        cookie = tk.Button(app, text="🍪 Click Me!!", font=(
+            "Arial", 10), width=20, height=5, command=cookie_click)
+        cookie.pack(pady=10)
+
+        upgrade_frame = tk.Frame(app)
+        upgrade_frame.pack(pady=10)
+
+        cost_label = tk.Label(
+            upgrade_frame, text="Upgrade Cost: 20", font=("Arial", 12))
+        cost_label.grid(row=0, column=0, padx=10, pady=5)
+
+        upgrade_button = tk.Button(
+            upgrade_frame, text="Buy (+1 CPS)", font=("Arial", 12), command=buy_upgrade)
+        upgrade_button.grid(row=1, column=0, padx=10, pady=5)
+
+        click_cost_label = tk.Label(
+            upgrade_frame, text="Upgrade Cost: 100", font=("Arial", 12))
+        click_cost_label.grid(row=0, column=1, padx=10, pady=5)
+
+        click_upgrade_button = tk.Button(upgrade_frame, text="Upgrade Click", font=(
+            "Arial", 12), command=buy_click_upgrade)
+        click_upgrade_button.grid(row=1, column=1, padx=10, pady=5)
+
+        back_button = tk.Button(app, text="⬅ Back", font=(
+            "Arial", 12), command=back_to_inventory)
+        back_button.pack(pady=10)
+
+        auto_generate()
 
 
 app = tk.Tk()
@@ -156,6 +266,7 @@ register.pack(pady=5)
 
 
 def inventory_gui():
+    global button_frame
     global entry
     global display_box
     title = tk.Label(app, text="Inventory Manager GUI",
@@ -174,8 +285,6 @@ def inventory_gui():
               command=remove_items).grid(row=0, column=1, padx=5)
     tk.Button(button_frame, text="Search", width=10,
               command=search_items).grid(row=0, column=2, padx=5)
-    tk.Button(button_frame, text="Secret", width=10,
-              command=secret).grid(row=0, column=3, padx=5)
 
     display_box = tk.Listbox(app, width=40, height=12)
     display_box.pack(pady=15)
