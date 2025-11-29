@@ -82,3 +82,5 @@ Programstrukturen → terminalversion drivs av while-loop och input(), Tkinter d
 Detta tog lite tid men som du ser i koden har jag lagt till saker som är mer än bara ett inventory så snälla skriv in cookie i inventoryt så du får se den fina hemliga knappen, men du måste komma ihåg ditt user och passeord för den hemliga saken.
 
 Samt så använder jag messagebox import i denna tkinter appen.
+
+Koden kan ärligt bli bättre och mer snygg om man använder sig av andra saker som går att göra med tkinter samt om man lägger in fler emojis. 
