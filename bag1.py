@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
+import json
+import os
 
 inventory = []
 reg_user = ""
@@ -16,6 +18,8 @@ auto_id = None
 secret_button = None
 
 global entry
+
+SAVE_FILE = "save_data.json"
 
 
 def parse_item_input(raw_text):
@@ -40,27 +44,43 @@ def add_item_from_text(raw_text):
     if qty > 0 and name:
         inventory.extend([name] * qty)
     inventory.sort()
-    update_display()
+    update_display_safe()
+
+
+def update_display_safe():
+    try:
+        update_display()
+    except NameError:
+        pass
+
+
+def update_label_safe():
+    try:
+        update_label()
+    except NameError:
+        pass
 
 
 def update_display():
     global display_box, secret_button
     display_box.delete(0, tk.END)
+
     if inventory:
         for item in sorted(set(inventory)):
             display_box.insert(tk.END, f"{inventory.count(item)}x {item}")
     else:
         display_box.insert(tk.END, "Your bag is empty!")
 
-    if any(item.lower() == "cookie" for item in inventory):
-        if not secret_button:
-            secret_button = tk.Button(
-                button_frame, text="Secret", width=10, command=secret)
-            secret_button.grid(row=0, column=3, padx=5)
-    else:
-        if secret_button:
-            secret_button.destroy()
-            secret_button = None
+    has_cookie = any(item.lower() == "cookie" for item in inventory)
+
+    if secret_button and not has_cookie:
+        secret_button.destroy()
+        secret_button = None
+
+    if has_cookie and button_frame and not secret_button:
+        secret_button = tk.Button(
+            button_frame, text="Secret", width=10, command=secret)
+        secret_button.grid(row=0, column=3, padx=5)
 
 
 def add_items():
@@ -98,7 +118,7 @@ def remove_items():
     else:
         messagebox.showerror("Not Found", f"{name} not found!")
 
-    update_display()
+    update_display_safe()
 
 
 def search_items():
@@ -119,8 +139,10 @@ def search_items():
 
 
 def clear_screen():
+    global secret_button
     for widget in app.winfo_children():
         widget.destroy()
+    secret_button = None
 
 
 def back_to_inventory():
@@ -136,6 +158,7 @@ def saved_register():
     global reg_user, reg_pass
     reg_user = saved_reg_name.get()
     reg_pass = saved_reg_pass.get()
+    save_game()
     clear_screen()
     inventory_gui()
 
@@ -176,7 +199,7 @@ def buy_upgrade():
         cookies -= upgrade_cost
         cps += 1
         upgrade_cost = int(upgrade_cost * 1.5)
-        update_label()
+        update_label_safe()
 
 
 def buy_click_upgrade():
@@ -185,27 +208,27 @@ def buy_click_upgrade():
         cookies -= click_upgrade
         cookie_clicks = round(cookie_clicks * 1.5, 2)
         click_upgrade = int(click_upgrade * 1.5)
-        update_label()
+        update_label_safe()
 
 
 def auto_generate():
     global cookies, auto_id
     cookies += cps
-    update_label()
+    update_label_safe()
     auto_id = app.after(1000, auto_generate)
 
 
 def cookie_click():
     global cookies
     cookies += cookie_clicks
-    update_label()
+    update_label_safe()
 
 
 def cookie_clicker():
     global user, password, cookie_label, cps_label, click_cost_label, cost_label
     if user.get() == reg_user and password.get() == reg_pass:
         clear_screen()
-        label = tk.Label(app, text="Cookie Cliker!", font=("Arial", 18))
+        label = tk.Label(app, text="Cookie Clicker!", font=("Arial", 18))
         label.pack()
 
         cookie_label = tk.Label(app, text="Cookies: 0", font=("Arial", 14))
@@ -244,31 +267,53 @@ def cookie_clicker():
         auto_generate()
 
 
-app = tk.Tk()
-app.title("Inventory Bag 🎒")
-app.geometry("420x380")
-app.resizable(False, False)
+def save_game():
+    data = {
+        "inventory": inventory,
+        "reg_user": reg_user,
+        "reg_pass": reg_pass,
+        "cookies": cookies,
+        "cps": cps,
+        "upgrade_cost": upgrade_cost,
+        "cookie_clicks": cookie_clicks,
+        "click_upgrade": click_upgrade
+    }
+    with open(SAVE_FILE, "w") as f:
+        json.dump(data, f)
 
-reg_name = tk.Label(app, text="Make a username")
-reg_name.pack()
 
-saved_reg_name = tk.Entry(app, width=20)
-saved_reg_name.pack(pady=5)
+def load_game():
+    global inventory, reg_user, reg_pass, cookies, cps, upgrade_cost, cookie_clicks, click_upgrade
+    if os.path.exists(SAVE_FILE):
+        with open(SAVE_FILE, "r") as f:
+            data = json.load(f)
+            inventory = data.get("inventory", [])
+            reg_user = data.get("reg_user", "")
+            reg_pass = data.get("reg_pass", "")
+            cookies = data.get("cookies", 0.0)
+            cps = data.get("cps", 0)
+            upgrade_cost = data.get("upgrade_cost", 20)
+            cookie_clicks = data.get("cookie_clicks", 1.0)
+            click_upgrade = data.get("click_upgrade", 100)
+        update_display_safe()
+        update_label_safe()
 
-reg_password = tk.Label(app, text="Make a Password")
-reg_password.pack(pady=5)
 
-saved_reg_pass = tk.Entry(app, width=20)
-saved_reg_pass.pack(pady=5)
+def auto_save():
+    save_game()
+    app.after(5000, auto_save)  # Save every 5 seconds
 
-register = tk.Button(app, text="Register", command=saved_register)
-register.pack(pady=5)
+
+def on_close():
+    save_game()
+    app.destroy()
 
 
 def inventory_gui():
     global button_frame
     global entry
     global display_box
+
     title = tk.Label(app, text="Inventory Manager GUI",
                      font=("Arial", 14, "bold"))
     title.pack(pady=10)
@@ -289,7 +334,40 @@ def inventory_gui():
     display_box = tk.Listbox(app, width=40, height=12)
     display_box.pack(pady=15)
 
-    update_display()
+    update_display_safe()
+    auto_save()
+
+
+app = tk.Tk()
+app.title("Inventory Bag 🎒")
+app.geometry("420x380")
+app.resizable(False, False)
+app.protocol("WM_DELETE_WINDOW", on_close)
+
+
+def reg():
+    global saved_reg_name, saved_reg_pass
+    reg_name = tk.Label(app, text="Make a username")
+    reg_name.pack()
+
+    saved_reg_name = tk.Entry(app, width=20)
+    saved_reg_name.pack(pady=5)
+
+    reg_password = tk.Label(app, text="Make a Password")
+    reg_password.pack(pady=5)
+
+    saved_reg_pass = tk.Entry(app, width=20)
+    saved_reg_pass.pack(pady=5)
+
+    register = tk.Button(app, text="Register", command=saved_register)
+    register.pack(pady=5)
+
+
+if os.path.exists(SAVE_FILE):
+    load_game()
+    inventory_gui()
+else:
+    reg()
 
 
 app.mainloop()
